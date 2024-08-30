@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: ProductService
+
+  data:
+    mongodb:
+      uri: ${mongo_uri}
+      database: ThePetClub
+      auto-index-creation: true
+      username: ${mongo_username}
+      password: ${mongo_password}
+
+access:
+  key:
+    id: ${access_key}
+    secret: ${access_secret}
+s3:
+  region:
+    name: ap-southeast-2
+  bucket:
+    name: skillifymestorage
+api:
+  prefix: api/v1
+
+server:
+  PORT: 8081
