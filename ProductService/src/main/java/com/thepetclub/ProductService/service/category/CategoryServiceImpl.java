@@ -8,7 +8,6 @@ import com.thepetclub.ProductService.repository.CategoryRepository;
 import com.thepetclub.ProductService.repository.ProductRepository;
 import com.thepetclub.ProductService.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,7 +24,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final String categoryNotFound = "No category found with: ";
 
     @Override
-    public Category getCategoryById(ObjectId id) {
+    public Category getCategoryById(String id) {
         return categoryRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException(categoryNotFound + id));
     }
@@ -49,11 +48,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category updateCategoryById(Category category, ObjectId id) {
+    public Category updateCategoryById(Category category, String id) {
         return Optional.ofNullable(getCategoryById(id))
                 .map(oldCategory -> {
                     oldCategory.setName(category.getName());
-                    for (ObjectId productId : oldCategory.getProductIds()) {
+                    for (String productId : oldCategory.getProductIds()) {
                         Product product = productService.getProductById(productId);
                         product.setCategoryName(category.getName());
                         productRepository.save(product);
@@ -64,9 +63,9 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
-    public void deleteCategoryById(ObjectId id) {
+    public void deleteCategoryById(String id) {
         categoryRepository.findById(id).ifPresentOrElse(category -> {
-            for (ObjectId productId : category.getProductIds()) {
+            for (String productId : category.getProductIds()) {
                 productRepository.deleteById(productId);
             }
             categoryRepository.delete(category);

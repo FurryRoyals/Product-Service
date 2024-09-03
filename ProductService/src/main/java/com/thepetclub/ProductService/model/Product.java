@@ -9,6 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -17,7 +18,7 @@ import java.util.List;
 @Document(collection = "products")
 public class Product {
     @Id
-    private ObjectId id;
+    private String id;
     private String name;
     private BigDecimal price;
     private int inventory;
@@ -25,9 +26,9 @@ public class Product {
 
     private String categoryName;
 
-    private List<Image> images;
+    private List<String> imageIds = new ArrayList<>();
 
-    public Product(String name, BigDecimal price, int inventory, String description, String category_name) {
+    public Product(String name, BigDecimal price, int inventory, String description, String categoryName) {
         this.name = name;
         this.price = price;
         this.inventory = inventory;

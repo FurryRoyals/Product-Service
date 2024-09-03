@@ -4,10 +4,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -16,13 +14,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 
 @Service
-public class AmazonS3ClientService {
+public class StorageService {
 
     private final AmazonS3 amazonS3;
     private final String bucketName;
 
     @Autowired
-    public AmazonS3ClientService(AmazonS3 amazonS3, @Value("${s3.bucket.name}") String bucketName) {
+    public StorageService(AmazonS3 amazonS3, @Value("${s3.bucket.name}") String bucketName) {
         this.amazonS3 = amazonS3;
         this.bucketName = bucketName;
     }
@@ -42,7 +40,6 @@ public class AmazonS3ClientService {
 
     public Resource downloadImageFromS3(String downloadUrl) {
         try {
-            // Extract the S3 key from the download URL
             String s3Key = downloadUrl.replaceFirst("https://[^/]+/", "");
 
             S3Object s3Object = amazonS3.getObject(bucketName, s3Key);

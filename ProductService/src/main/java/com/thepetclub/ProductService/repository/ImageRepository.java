@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ImageRepository extends MongoRepository<Image, ObjectId> {
+public interface ImageRepository extends MongoRepository<Image, String> {
 
 }

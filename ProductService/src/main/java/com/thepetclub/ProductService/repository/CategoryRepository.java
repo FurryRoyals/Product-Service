@@ -4,7 +4,7 @@ import com.thepetclub.ProductService.model.Category;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface CategoryRepository extends MongoRepository<Category, ObjectId> {
+public interface CategoryRepository extends MongoRepository<Category, String> {
     Category findByName(String name);
 
     boolean existsByName(String name);
