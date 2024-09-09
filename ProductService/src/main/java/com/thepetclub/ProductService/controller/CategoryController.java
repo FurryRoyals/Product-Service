@@ -1,7 +1,7 @@
 package com.thepetclub.ProductService.controller;
 
-import com.thepetclub.ProductService.clients.authClient.AuthClientRequest;
-import com.thepetclub.ProductService.clients.authClient.AuthClientResponse;
+import com.thepetclub.ProductService.clients.auth.AuthClientRequest;
+import com.thepetclub.ProductService.clients.auth.AuthClientResponse;
 import com.thepetclub.ProductService.exception.AlreadyExistsException;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.exception.UnauthorizedException;

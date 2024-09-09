@@ -1,8 +1,8 @@
 package com.thepetclub.ProductService.controller;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.thepetclub.ProductService.clients.authClient.AuthClientRequest;
-import com.thepetclub.ProductService.clients.authClient.AuthClientResponse;
+import com.thepetclub.ProductService.clients.auth.AuthClientRequest;
+import com.thepetclub.ProductService.clients.auth.AuthClientResponse;
 import com.thepetclub.ProductService.dto.ImageDto;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.exception.UnauthorizedException;

@@ -1,4 +1,4 @@
-package com.thepetclub.ProductService.clients.authClient;
+package com.thepetclub.ProductService.clients.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
