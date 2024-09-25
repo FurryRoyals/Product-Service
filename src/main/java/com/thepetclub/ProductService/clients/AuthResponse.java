@@ -1,11 +1,11 @@
-package com.thepetclub.ProductService.clients.auth;
+package com.thepetclub.ProductService.clients;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @AllArgsConstructor
 @Data
-public class AuthClientResponse {
+public class AuthResponse {
     private String message;
     private boolean isVerified;
 }

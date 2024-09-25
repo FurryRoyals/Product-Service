@@ -19,8 +19,6 @@ s3:
     name: ap-southeast-2
   bucket:
     name: skillifymestorage
-api:
-  prefix: api/v1
 
 server:
   PORT: 8081

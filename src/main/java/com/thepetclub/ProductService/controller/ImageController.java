@@ -1,8 +1,8 @@
 package com.thepetclub.ProductService.controller;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.thepetclub.ProductService.clients.auth.AuthClientRequest;
-import com.thepetclub.ProductService.clients.auth.AuthClientResponse;
+import com.thepetclub.ProductService.clients.AuthService;
+import com.thepetclub.ProductService.clients.AuthResponse;
 import com.thepetclub.ProductService.dto.ImageDto;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.exception.UnauthorizedException;
@@ -26,14 +26,14 @@ import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @RestController
-@RequestMapping("${api.prefix}/images")
+@RequestMapping("product/images")
 @RequiredArgsConstructor
 public class ImageController {
 
     private final ImageService imageService;
     private final StorageService storageService;
     private final AmazonS3 amazonS3;
-    private final AuthClientRequest authClientRequest;
+    private final AuthService authService;
 
     @Value("${s3.bucket.name}")
     private String bucketName;
@@ -45,13 +45,13 @@ public class ImageController {
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
-            AuthClientResponse authClientResponse = authClientRequest.validateAdmin(token);
+            AuthResponse authResponse = authService.validateAdmin(token);
 
-            if (authClientResponse.isVerified()) {
+            if (authResponse.isVerified()) {
                 List<ImageDto> imageDtos = imageService.saveImages(files, productId);
                 return ResponseEntity.ok(new ApiResponse("Upload successful", imageDtos));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authClientResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
             }
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(NOT_FOUND).body(new ApiResponse("Upload failed", e.getMessage()));
@@ -111,9 +111,9 @@ public class ImageController {
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
-            AuthClientResponse authClientResponse = authClientRequest.validateAdmin(token);
+            AuthResponse authResponse = authService.validateAdmin(token);
 
-            if (authClientResponse.isVerified()) {
+            if (authResponse.isVerified()) {
                 Image existingImage = imageService.getImageById(imageId);
                 if (existingImage != null) {
                     amazonS3.deleteObject(bucketName, storageService.extractS3Key(existingImage.getDownloadUrl()));
@@ -125,7 +125,7 @@ public class ImageController {
                     }
                 }
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authClientResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
             }
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage() + imageId, null));
@@ -142,9 +142,9 @@ public class ImageController {
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
-            AuthClientResponse authClientResponse = authClientRequest.validateAdmin(token);
+            AuthResponse authResponse = authService.validateAdmin(token);
 
-            if (authClientResponse.isVerified()) {
+            if (authResponse.isVerified()) {
                 Image existingImage = imageService.getImageById(imageId);
                 if (existingImage != null) {
                     amazonS3.deleteObject(bucketName, storageService.extractS3Key(existingImage.getDownloadUrl()));
@@ -152,7 +152,7 @@ public class ImageController {
                     return ResponseEntity.ok(new ApiResponse("Delete success!", null));
                 }
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authClientResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
             }
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
