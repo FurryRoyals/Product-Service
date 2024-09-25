@@ -1,7 +1,7 @@
 package com.thepetclub.ProductService.controller;
 
-import com.thepetclub.ProductService.clients.auth.AuthClientRequest;
-import com.thepetclub.ProductService.clients.auth.AuthClientResponse;
+import com.thepetclub.ProductService.clients.AuthService;
+import com.thepetclub.ProductService.clients.AuthResponse;
 import com.thepetclub.ProductService.exception.AlreadyExistsException;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.exception.UnauthorizedException;
@@ -17,12 +17,12 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("${api.prefix}/categories")
+@RequestMapping("categories")
 @RequiredArgsConstructor
 public class CategoryController {
 
     private final CategoryService categoryService;
-    private final AuthClientRequest authClientRequest;
+    private final AuthService authService;
 
     @GetMapping("all")
     public ResponseEntity<ApiResponse> getAllCategories() {
@@ -40,13 +40,13 @@ public class CategoryController {
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
-            AuthClientResponse authClientResponse = authClientRequest.validateAdmin(token);
+            AuthResponse authResponse = authService.validateAdmin(token);
 
-            if (authClientResponse.isVerified()) {
+            if (authResponse.isVerified()) {
                 Category theCategory = categoryService.addCategory(name);
                 return ResponseEntity.ok(new ApiResponse("Success", theCategory));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authClientResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
             }
         } catch (AlreadyExistsException e) {
             return ResponseEntity.status(CONFLICT).body(new ApiResponse(e.getMessage(), name));
@@ -84,13 +84,13 @@ public class CategoryController {
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
-            AuthClientResponse authClientResponse = authClientRequest.validateAdmin(token);
+            AuthResponse authResponse = authService.validateAdmin(token);
 
-            if (authClientResponse.isVerified()) {
+            if (authResponse.isVerified()) {
                 categoryService.deleteCategoryById(id);
                 return ResponseEntity.ok(new ApiResponse("Category deleted successfully!", null));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authClientResponse.getMessage(), UNAUTHORIZED));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), UNAUTHORIZED));
             }
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
@@ -109,13 +109,13 @@ public class CategoryController {
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
-            AuthClientResponse authClientResponse = authClientRequest.validateAdmin(token);
+            AuthResponse authResponse = authService.validateAdmin(token);
 
-            if (authClientResponse.isVerified()) {
+            if (authResponse.isVerified()) {
                 Category updatedCategory = categoryService.updateCategoryById(category, id);
                 return ResponseEntity.ok(new ApiResponse("Update success!", updatedCategory));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authClientResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
             }
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
