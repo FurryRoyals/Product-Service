@@ -26,7 +26,7 @@ import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @RestController
-@RequestMapping("product/images")
+@RequestMapping("${prefix}/product/images")
 @RequiredArgsConstructor
 public class ImageController {
 

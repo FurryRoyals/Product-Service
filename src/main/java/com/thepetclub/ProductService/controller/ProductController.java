@@ -18,7 +18,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("products")
+@RequestMapping("${prefix}")
 @RequiredArgsConstructor
 public class ProductController {
 

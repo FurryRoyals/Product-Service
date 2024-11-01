@@ -17,7 +17,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("/product/inventory")
+@RequestMapping("${prefix}/product/inventory")
 @RequiredArgsConstructor
 @Slf4j
 public class InventoryController {
