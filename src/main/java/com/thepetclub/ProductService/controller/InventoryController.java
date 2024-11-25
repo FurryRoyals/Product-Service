@@ -17,7 +17,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("/product/inventory")
+@RequestMapping("${prefix}/inventory")
 @RequiredArgsConstructor
 @Slf4j
 public class InventoryController {
@@ -55,7 +55,7 @@ public class InventoryController {
             }
 
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new InventoryResponse(e.getMessage(),false, null, null));
+            return ResponseEntity.status(NOT_FOUND).body(new InventoryResponse(e.getMessage(), false, null, null));
         } catch (Exception e) {
             return ResponseEntity.status(INTERNAL_SERVER_ERROR)
                     .body(new InventoryResponse("An error occurred while checking product availability", false, null, null));
@@ -88,14 +88,14 @@ public class InventoryController {
             AuthResponse authResponse = authService.validateAdmin(token);
             if (authResponse.isVerified()) {
                 inventoryService.restockProduct(productId, quantity);
-                return ResponseEntity.ok(new ApiResponse("Inventory has been updated successfully", null));
-            } else  {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
+                return ResponseEntity.ok(new ApiResponse("Inventory has been updated successfully", true, null));
+            } else {
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, null));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Error occurred while restocking inventory", null));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Error occurred while restocking inventory", false, null));
         }
     }
 

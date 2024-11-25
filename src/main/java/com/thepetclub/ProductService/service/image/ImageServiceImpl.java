@@ -31,47 +31,78 @@ public class ImageServiceImpl implements ImageService {
 
 
     @Override
-    public List<ImageDto> saveImages(List<MultipartFile> files, String productId) {
+    public List<ImageDto> saveImages(List<MultipartFile> files, String productId, MultipartFile firstImage) {
         Product product = productService.getProductById(productId);
         if (product == null) {
             throw new ResourceNotFoundException(imageNotFound + productId);
         }
 
         List<ImageDto> savedImageDtos = new ArrayList<>();
-        for (MultipartFile file : files) {
+
+        if (firstImage != null) {
             try {
-                String s3Key = "images/" + productId + "/" + file.getOriginalFilename();
-                String downloadUrl = storageService.uploadFileToS3(file, s3Key);
+                String s3Key = "images/" + productId + "/" + firstImage.getOriginalFilename();
+                String downloadUrl = storageService.uploadFileToS3(firstImage, s3Key);
 
-                Image image = new Image();
-                image.setFileName(file.getOriginalFilename());
-                image.setFileType(file.getContentType());
+                Image firstImageEntity = new Image();
+                firstImageEntity.setFileName(firstImage.getOriginalFilename());
+                firstImageEntity.setFileType(firstImage.getContentType());
+                firstImageEntity.setFetchUrl("product/images/load/");
+                firstImageEntity.setProductId(productId);
+                firstImageEntity.setDownloadUrl(downloadUrl);
 
-                String fetchUrl = "api/v1/images/load/";
+                Image savedFirstImage = imageRepository.save(firstImageEntity);
+                savedFirstImage.setFetchUrl("product/images/load/" + savedFirstImage.getId());
+                imageRepository.save(savedFirstImage);
 
-                image.setFetchUrl(fetchUrl);
-                image.setProductId(productId);
-                image.setDownloadUrl(downloadUrl);
-                Image saved = imageRepository.save(image);
-
-                saved.setFetchUrl(fetchUrl + saved.getId());
-                Image savedImage = imageRepository.save(saved);
-
-                List<String> imageIds = product.getImageIds();
-                imageIds.add(savedImage.getId());
-                product.setImageIds(imageIds);
+                // Set the firstImageId in the product and save it
+                product.setFirstImageId(savedFirstImage.getId());
                 productRepository.save(product);
-
-                ImageDto imageDto = new ImageDto();
-                imageDto.setId(savedImage.getId());
-                imageDto.setFileName(savedImage.getFileName());
-                imageDto.setFetchUrl(savedImage.getFetchUrl());
-                imageDto.setProductId(productId);
-                savedImageDtos.add(imageDto);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to save image: " + file.getOriginalFilename(), e);
+                throw new RuntimeException("Failed to save the first image: " + firstImage.getOriginalFilename(), e);
             }
         }
+
+        if (files != null) {
+            for (MultipartFile file : files) {
+                try {
+
+                    String s3Key = "images/" + productId + "/" + file.getOriginalFilename();
+                    String downloadUrl = storageService.uploadFileToS3(file, s3Key);
+
+                    Image image = new Image();
+                    image.setFileName(file.getOriginalFilename());
+                    image.setFileType(file.getContentType());
+
+                    String fetchUrl = "product/images/load/";
+
+                    image.setFetchUrl(fetchUrl);
+                    image.setProductId(productId);
+                    image.setDownloadUrl(downloadUrl);
+                    Image saved = imageRepository.save(image);
+
+                    saved.setFetchUrl(fetchUrl + saved.getId());
+                    Image savedImage = imageRepository.save(saved);
+
+                    List<String> imageIds = product.getImageIds();
+                    imageIds.add(savedImage.getId());
+                    product.setImageIds(imageIds);
+                    productRepository.save(product);
+
+                    ImageDto imageDto = new ImageDto();
+                    imageDto.setId(savedImage.getId());
+                    imageDto.setFileName(savedImage.getFileName());
+                    imageDto.setFetchUrl(savedImage.getFetchUrl());
+                    imageDto.setProductId(productId);
+                    savedImageDtos.add(imageDto);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to save image: " + file.getOriginalFilename(), e);
+                }
+            }
+
+        }
+
+
         return savedImageDtos;
     }
 

@@ -10,15 +10,21 @@ import com.thepetclub.ProductService.response.ApiResponse;
 import com.thepetclub.ProductService.clients.AuthResponse;
 import com.thepetclub.ProductService.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("products")
+@RequestMapping("${prefix}")
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -26,65 +32,76 @@ public class ProductController {
     private final AuthService authService;
 
     @GetMapping("/all")
-    public ResponseEntity<ApiResponse> getAllProducts() {
-        List<Product> products = productService.getAllProducts();
-        return ResponseEntity.ok(new ApiResponse("Success", products));
+    public ResponseEntity<ApiResponse> getAllProducts(
+            @RequestParam(defaultValue = "") String cursor,  // Default cursor is an empty string
+            @RequestParam(defaultValue = "10") int size,
+            PagedResourcesAssembler<Product> pagedResourcesAssembler) {
+        try {
+            List<Product> products = productService.getAllProducts(cursor, size);
+            String nextCursor = products.isEmpty() ? null : products.getLast().getId();
+            Map<String, Object> response = new HashMap<>();
+            response.put("products", products);
+            response.put("nextCursor", nextCursor);
+            return ResponseEntity.ok(new ApiResponse("Success", true, response));
+        } catch (Exception e) {
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse> getFilteredProducts(
+            @RequestParam(defaultValue = "") String cursor,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String categoryName,
+            @RequestParam(required = false) String name) {
+        try {
+            List<Product> products = productService.getFilteredProducts(cursor, size, categoryName, name);
+            String nextCursor = products.isEmpty() ? null : products.getLast().getId(); // Last ID as next cursor
+            Map<String, Object> response = new HashMap<>();
+            response.put("products", products);
+            response.put("nextCursor", nextCursor);
+
+            return ResponseEntity.ok(new ApiResponse("Success", true, response));
+        } catch (Exception e) {
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
+        }
     }
 
     @GetMapping("/{productId}")
     public ResponseEntity<ApiResponse> getProductById(@PathVariable String productId) {
         try {
             Product product = productService.getProductById(productId);
-            return ResponseEntity.ok(new ApiResponse("Success", product));
+            return ResponseEntity.ok(new ApiResponse("Success", true, product));
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse> getProducts(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String categoryName) {
-        try {
-            List<Product> products;
-            if (name != null) {
-                products = productService.getProductsByName(name);
-            } else if (categoryName != null) {
-                products = productService.getProductsByCategory(categoryName);
-            } else {
-                throw new IllegalArgumentException("At least one query parameter is required.");
-            }
-            return ResponseEntity.ok(new ApiResponse("Success", products));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(BAD_REQUEST).body(new ApiResponse(e.getMessage(), null));
-        }
-    }
+
 
     @PostMapping("/add")
-    public ResponseEntity<ApiResponse> addProduct(
-            @RequestBody AddProductRequest request,
+    public ResponseEntity<ApiResponse> addProductByCategory(
+            @RequestBody List<AddProductRequest> products,
+            @RequestParam String category,
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             String token = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
             AuthResponse authResponse = authService.validateAdmin(token);
             if (authResponse.isVerified()) {
-                if (request.getCategoryName() == null) {
-                    return ResponseEntity.status(BAD_REQUEST).body(new ApiResponse("category name missing", null));
+                if (category.isBlank()) {
+                    return ResponseEntity.status(BAD_REQUEST).body(new ApiResponse("category name missing", false, null));
                 }
-                Product product = productService.addProduct(request);
-                return ResponseEntity.ok(new ApiResponse("Add product success!", product));
+                productService.addProductByCategory(products, category);
+                return ResponseEntity.ok(new ApiResponse("Add product success!", true, null));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), UNAUTHORIZED));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, UNAUTHORIZED));
             }
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), INTERNAL_SERVER_ERROR));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, INTERNAL_SERVER_ERROR));
         }
     }
-
 
     @PutMapping("/update/{productId}")
     public ResponseEntity<ApiResponse> updateProduct(
@@ -97,16 +114,16 @@ public class ProductController {
 
             if (authResponse.isVerified()) {
                 Product product = productService.updateProductById(request, productId);
-                return ResponseEntity.ok(new ApiResponse("Update product success!", product));
+                return ResponseEntity.ok(new ApiResponse("Update product success!", true, product));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), UNAUTHORIZED));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, UNAUTHORIZED));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 
@@ -121,16 +138,16 @@ public class ProductController {
 
             if (authResponse.isVerified()) {
                 productService.deleteProductById(productId);
-                return ResponseEntity.ok(new ApiResponse("Product deleted successfully!", null));
+                return ResponseEntity.ok(new ApiResponse("Product deleted successfully!", true, null));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), UNAUTHORIZED));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, UNAUTHORIZED));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 

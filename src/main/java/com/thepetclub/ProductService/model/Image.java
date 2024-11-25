@@ -20,6 +20,6 @@ public class Image {
     private String fetchUrl;
     private String fileName;
     private String fileType;
+    private String productId;
 
-    private String  productId;
 }

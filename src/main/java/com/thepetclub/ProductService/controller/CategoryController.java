@@ -17,7 +17,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("categories")
+@RequestMapping("{prefix}/categories")
 @RequiredArgsConstructor
 public class CategoryController {
 
@@ -28,9 +28,9 @@ public class CategoryController {
     public ResponseEntity<ApiResponse> getAllCategories() {
         try {
             List<Category> categories = categoryService.getAllCategories();
-            return ResponseEntity.ok(new ApiResponse("Found!", categories));
+            return ResponseEntity.ok(new ApiResponse("Found!", true, categories));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Error", INTERNAL_SERVER_ERROR));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Error", false, INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -44,16 +44,16 @@ public class CategoryController {
 
             if (authResponse.isVerified()) {
                 Category theCategory = categoryService.addCategory(name);
-                return ResponseEntity.ok(new ApiResponse("Success", theCategory));
+                return ResponseEntity.ok(new ApiResponse("Success", true, theCategory));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, null));
             }
         } catch (AlreadyExistsException e) {
-            return ResponseEntity.status(CONFLICT).body(new ApiResponse(e.getMessage(), name));
+            return ResponseEntity.status(CONFLICT).body(new ApiResponse(e.getMessage(), false, name));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 
@@ -62,9 +62,9 @@ public class CategoryController {
     public ResponseEntity<ApiResponse> getCategoryById(@PathVariable String id) {
         try {
             Category theCategory = categoryService.getCategoryById(id);
-            return ResponseEntity.ok(new ApiResponse("Found", theCategory));
+            return ResponseEntity.ok(new ApiResponse("Found", true, theCategory));
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 
@@ -72,9 +72,9 @@ public class CategoryController {
     public ResponseEntity<ApiResponse> getCategoryByName(@RequestParam String name) {
         try {
             Category theCategory = categoryService.getCategoryByName(name);
-            return ResponseEntity.ok(new ApiResponse("Found", theCategory));
+            return ResponseEntity.ok(new ApiResponse("Found", true, theCategory));
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 
@@ -88,16 +88,16 @@ public class CategoryController {
 
             if (authResponse.isVerified()) {
                 categoryService.deleteCategoryById(id);
-                return ResponseEntity.ok(new ApiResponse("Category deleted successfully!", null));
+                return ResponseEntity.ok(new ApiResponse("Category deleted successfully!", true, null));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), UNAUTHORIZED));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, UNAUTHORIZED));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), UNAUTHORIZED));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, UNAUTHORIZED));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), INTERNAL_SERVER_ERROR));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -113,16 +113,16 @@ public class CategoryController {
 
             if (authResponse.isVerified()) {
                 Category updatedCategory = categoryService.updateCategoryById(category, id);
-                return ResponseEntity.ok(new ApiResponse("Update success!", updatedCategory));
+                return ResponseEntity.ok(new ApiResponse("Update success!", true, updatedCategory));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, null));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.thepetclub.ProductService.service.product;
 
-import com.thepetclub.ProductService.controller.ImageController;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.model.Category;
 import com.thepetclub.ProductService.model.Product;
@@ -9,12 +8,14 @@ import com.thepetclub.ProductService.repository.ImageRepository;
 import com.thepetclub.ProductService.repository.ProductRepository;
 import com.thepetclub.ProductService.request.AddProductRequest;
 import com.thepetclub.ProductService.request.ProductUpdateRequest;
-import com.thepetclub.ProductService.service.category.CategoryService;
-import com.thepetclub.ProductService.service.category.CategoryServiceImpl;
-import com.thepetclub.ProductService.service.image.ImageService;
-import com.thepetclub.ProductService.service.image.ImageServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
+import org.springframework.data.domain.*;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +27,8 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    //    private final ImageService imageService;
-//    private final CategoryService categoryService;
     private final ImageRepository imageRepository;
+    private final MongoTemplate mongoTemplate;
 
     private final String productNotFound = "No product found with: ";
 
@@ -51,6 +51,29 @@ public class ProductServiceImpl implements ProductService {
         return savedProduct;
     }
 
+    @Transactional
+    @Override
+    public void addProductByCategory(List<AddProductRequest> requests, String category) {
+        Category existingCategory = Optional.ofNullable(categoryRepository.findByName(category))
+                .orElseGet(() -> {
+                    Category newCategory = new Category();
+                    newCategory.setName(category);
+                    return categoryRepository.save(newCategory);
+                });
+        List<Product> products = new ArrayList<>();
+        requests.forEach( it -> {
+            Product product = createProduct(it, category);
+            products.add(product);
+        });
+        List<Product> savedProducts = productRepository.saveAll(products);
+        List<String> productIds = existingCategory.getProductIds();
+        savedProducts.forEach( it -> {
+            productIds.add(it.getId());
+        });
+        existingCategory.setProductIds(productIds);
+        categoryRepository.save(existingCategory);
+    }
+
     private Product createProduct(AddProductRequest request, String category_name) {
         return new Product(
                 request.getName(),
@@ -67,16 +90,6 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(productNotFound + id));
     }
 
-//    @Override
-//    public void deleteProductById(String id) {
-//        Product product = getProductById(id);
-//        String categoryName = product.getCategoryName();
-//        productRepository.delete(product);
-//        Category category = Optional.ofNullable(categoryRepository.findByName(categoryName))
-//                .orElseThrow(() -> new ResourceNotFoundException("No Category found with: " + categoryName));
-//        category.getProductIds().removeIf(productId -> productId.equals(id));
-//        categoryRepository.save(category);
-//    }
 
 
     @Override
@@ -121,25 +134,35 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public List<Product> getAllProducts(String cursor, int size) {
+        Query query = new Query();
+
+        if (cursor != null && !cursor.isEmpty()) {
+            query.addCriteria(Criteria.where("_id").gt(new ObjectId(cursor)));
+        }
+
+        query.limit(size);
+        return mongoTemplate.find(query, Product.class);
     }
 
     @Override
-    public List<Product> getProductsByCategory(String categoryName) {
-        List<Product> products = productRepository.findByCategoryName(categoryName);
-        if (products.isEmpty()) {
-            throw new ResourceNotFoundException(productNotFound + categoryName);
+    public List<Product> getFilteredProducts(String cursor, int size, String categoryName, String name) {
+        Query query = new Query();
+
+        if (cursor != null && !cursor.isEmpty()) {
+            query.addCriteria(Criteria.where("_id").gt(new ObjectId(cursor)));
         }
-        return products;
+        if (categoryName != null) {
+            query.addCriteria(Criteria.where("categoryName").is(categoryName));
+        }
+        if (name != null) {
+            query.addCriteria(Criteria.where("name").regex(".*" + name + ".*", "i"));
+        }
+
+        query.limit(size);
+        query.with(Sort.by(Sort.Direction.ASC, "_id"));
+
+        return mongoTemplate.find(query, Product.class);
     }
 
-    @Override
-    public List<Product> getProductsByName(String name) {
-        List<Product> products = productRepository.findByName(name);
-        if (products.isEmpty()) {
-            throw new ResourceNotFoundException(productNotFound + name);
-        }
-        return products;
-    }
 }

@@ -26,7 +26,7 @@ import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @RestController
-@RequestMapping("product/images")
+@RequestMapping("${prefix}/images")
 @RequiredArgsConstructor
 public class ImageController {
 
@@ -40,7 +40,8 @@ public class ImageController {
 
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse> saveImages(
-            @RequestBody List<MultipartFile> files,
+            @RequestBody(required = false) List<MultipartFile> files,
+            @RequestBody(required = false) MultipartFile firstImage,
             @RequestParam("productId") String productId,
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
@@ -48,23 +49,23 @@ public class ImageController {
             AuthResponse authResponse = authService.validateAdmin(token);
 
             if (authResponse.isVerified()) {
-                List<ImageDto> imageDtos = imageService.saveImages(files, productId);
-                return ResponseEntity.ok(new ApiResponse("Upload successful", imageDtos));
+                List<ImageDto> imageDtos = imageService.saveImages(files, productId, firstImage);
+                return ResponseEntity.ok(new ApiResponse("Upload successful", true, null));
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, null));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse("Upload failed", e.getMessage()));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse("Upload failed", false, e.getMessage()));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         } catch (Exception e) {
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Upload failed", e.getMessage()));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Upload failed", false, e.getMessage()));
         }
     }
 
 
     @GetMapping("/download/{imageId}")
-    public ResponseEntity<Resource> downloadImage(@PathVariable String imageId) {
+    public ResponseEntity<ApiResponse> downloadImage(@PathVariable String imageId) {
         try {
             Image image = imageService.getImageById(imageId);
             Resource resource = storageService.downloadImageFromS3(image.getDownloadUrl());
@@ -76,10 +77,10 @@ public class ImageController {
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + image.getFileName() + "\"")
-                    .body(resource);
+                    .body(new ApiResponse("success", true, resource));
         } catch (Exception e) {
             return ResponseEntity.status(INTERNAL_SERVER_ERROR)
-                    .body(null);
+                    .body(new ApiResponse("Failed", false, null));
         }
     }
 
@@ -92,7 +93,6 @@ public class ImageController {
             if (contentType == null) {
                 contentType = "application/octet-stream";
             }
-
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + image.getFileName() + "\"")
@@ -121,18 +121,18 @@ public class ImageController {
                     String newDownloadUrl = storageService.uploadFileToS3(file, s3Key);
                     ImageDto updatedImageDto = imageService.updateImage(file, imageId, newDownloadUrl);
                     if (updatedImageDto != null) {
-                        return ResponseEntity.ok(new ApiResponse("Update successful!", updatedImageDto));
+                        return ResponseEntity.ok(new ApiResponse("Update successful!", true, updatedImageDto));
                     }
                 }
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, null));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage() + imageId, null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage() + imageId, false, null));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         }
-        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Update failed!", null));
+        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Update failed!", false, null));
     }
 
 
@@ -149,17 +149,35 @@ public class ImageController {
                 if (existingImage != null) {
                     amazonS3.deleteObject(bucketName, storageService.extractS3Key(existingImage.getDownloadUrl()));
                     imageService.deleteImageById(imageId);
-                    return ResponseEntity.ok(new ApiResponse("Delete success!", null));
+                    return ResponseEntity.ok(new ApiResponse("Delete success!", false, null));
                 }
             } else {
-                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), null));
+                return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, null));
             }
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
         } catch (UnauthorizedException e) {
-            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), null));
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
         }
-        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Delete failed!", null));
+        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Delete failed!", false, null));
+    }
+
+
+    @PostMapping("/upload-images")
+    public ResponseEntity<ApiResponse> saveImagesWithoutAuth(
+            @RequestBody(required = false) List<MultipartFile> files,
+            @RequestBody(required = false) MultipartFile firstImage,
+            @RequestParam("productId") String productId) {
+        try {
+            List<ImageDto> imageDtos = imageService.saveImages(files, productId, firstImage);
+            return ResponseEntity.ok(new ApiResponse("Upload successful", true, imageDtos));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse("Upload failed", false, e.getMessage()));
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(e.getMessage(), false, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Upload failed", false, e.getMessage()));
+        }
     }
 
 

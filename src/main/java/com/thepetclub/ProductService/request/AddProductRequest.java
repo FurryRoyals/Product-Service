@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 public class AddProductRequest {
     private String id;
     private String name;
-    private BigDecimal price;
+    private Double price;
     private int inventory;
     private String description;
     private String categoryName;
