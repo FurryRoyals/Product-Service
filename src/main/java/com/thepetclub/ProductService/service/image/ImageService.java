@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface ImageService {
-    List<ImageDto> saveImages(List<MultipartFile> files, String productId);
+    List<ImageDto> saveImages(List<MultipartFile> files, String productId, MultipartFile firstImage);
     ImageDto updateImage(MultipartFile file, String imageId, String newDownloadUrl);
     Image getImageById(String id);
     List<Image> getImagesByProductId(String productId);

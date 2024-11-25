@@ -20,15 +20,17 @@ public class Product {
     @Id
     private String id;
     private String name;
-    private BigDecimal price;
+    private Double price;
     private int inventory;
     private String description;
 
     private String categoryName;
 
+    private String firstImageId;
+
     private List<String> imageIds = new ArrayList<>();
 
-    public Product(String name, BigDecimal price, int inventory, String description, String categoryName) {
+    public Product(String name, Double price, int inventory, String description, String categoryName) {
         this.name = name;
         this.price = price;
         this.inventory = inventory;
