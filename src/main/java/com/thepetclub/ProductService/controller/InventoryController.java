@@ -36,7 +36,7 @@ public class InventoryController {
                 InventoryResponse response = inventoryService.isProductAvailable(availabilityRequests);
                 isAvailable = response.isAvailable();
                 if (isAvailable) {
-                    return ResponseEntity.ok(new InventoryResponse(response.getMessage(), true, null, null));
+                    return ResponseEntity.ok(new InventoryResponse(response.getMessage(), true, response.getData(), null));
                 } else {
                     return ResponseEntity.status(BAD_REQUEST)
                             .body(new InventoryResponse(response.getMessage(), false, null, response.getProductIds()));

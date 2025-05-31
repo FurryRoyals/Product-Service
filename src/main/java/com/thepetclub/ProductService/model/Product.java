@@ -21,20 +21,25 @@ public class Product {
     private String id;
     private String name;
     private Double price;
+    private int discount;
+    private Double discountedPrice;
     private int inventory;
     private String description;
-
     private String categoryName;
 
     private String firstImageId;
+    private Boolean isFeatured;
 
     private List<String> imageIds = new ArrayList<>();
 
-    public Product(String name, Double price, int inventory, String description, String categoryName) {
+    public Product(String name, Double price, int discount, Double discountedPrice, int inventory, String description, String categoryName, Boolean isFeatured) {
         this.name = name;
         this.price = price;
+        this.discount = discount;
+        this.discountedPrice = discountedPrice;
         this.inventory = inventory;
         this.description = description;
         this.categoryName = categoryName;
+        this.isFeatured = isFeatured;
     }
 }

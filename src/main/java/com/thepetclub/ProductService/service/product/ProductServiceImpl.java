@@ -1,5 +1,6 @@
 package com.thepetclub.ProductService.service.product;
 
+import com.mongodb.client.result.UpdateResult;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.model.Category;
 import com.thepetclub.ProductService.model.Product;
@@ -14,10 +15,12 @@ import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +34,14 @@ public class ProductServiceImpl implements ProductService {
     private final MongoTemplate mongoTemplate;
 
     private final String productNotFound = "No product found with: ";
+
+
+    @Override
+    public UpdateResult setProductField() {
+        Query query = new Query();
+        Update update = new Update().set("discountedPrice", 0.0);
+        return mongoTemplate.updateMulti(query, update, Product.class);
+    }
 
     @Override
     public Product addProduct(AddProductRequest request) {
@@ -78,9 +89,12 @@ public class ProductServiceImpl implements ProductService {
         return new Product(
                 request.getName(),
                 request.getPrice(),
+                request.getDiscount(),
+                request.getDiscountedPrice(),
                 request.getInventory(),
                 request.getDescription(),
-                category_name
+                category_name,
+                request.getIsFeatured()
         );
     }
 
@@ -88,6 +102,11 @@ public class ProductServiceImpl implements ProductService {
     public Product getProductById(String id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(productNotFound + id));
+    }
+
+    @Override
+    public List<Product> getProductsByIds(List<String> productIds) {
+        return productRepository.findAllById(productIds);
     }
 
 
@@ -163,6 +182,16 @@ public class ProductServiceImpl implements ProductService {
         query.with(Sort.by(Sort.Direction.ASC, "_id"));
 
         return mongoTemplate.find(query, Product.class);
+    }
+
+    @Override
+    public List<Product> getAllFeaturedProducts() {
+        try {
+            return productRepository.findByIsFeatured(true)
+                    .orElse(Collections.emptyList());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not retrieve featured products", e);
+        }
     }
 
 }

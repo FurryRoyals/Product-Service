@@ -1,5 +1,7 @@
 package com.thepetclub.ProductService.controller;
 
+import com.amazonaws.util.CollectionUtils;
+import com.mongodb.client.result.UpdateResult;
 import com.thepetclub.ProductService.clients.AuthService;
 import com.thepetclub.ProductService.exception.ResourceNotFoundException;
 import com.thepetclub.ProductService.exception.UnauthorizedException;
@@ -9,11 +11,13 @@ import com.thepetclub.ProductService.request.ProductUpdateRequest;
 import com.thepetclub.ProductService.response.ApiResponse;
 import com.thepetclub.ProductService.clients.AuthResponse;
 import com.thepetclub.ProductService.service.product.ProductService;
+import feign.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,9 +35,37 @@ public class ProductController {
     private final ProductService productService;
     private final AuthService authService;
 
+    @PutMapping("set")
+    public ResponseEntity<ApiResponse> setNewField() {
+        try {
+            UpdateResult products = productService.setProductField();
+            if (products.getModifiedCount() == 0) {
+                return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Failed to set new Field", false, null));
+            }
+            return ResponseEntity.ok(new ApiResponse("successfully set", true, products));
+        } catch (Exception e) {
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse("Failed to set new Field", false, null));
+        }
+    }
+
+    @GetMapping("featured")
+    public ResponseEntity<ApiResponse> getAllFeaturedProducts() {
+        try {
+            List<Product> featuredProducts = productService.getAllFeaturedProducts();
+            if (featuredProducts.isEmpty()) {
+                return ResponseEntity.status(NOT_FOUND).body(new ApiResponse("Empty", false, null));
+            }
+            return ResponseEntity.ok(new ApiResponse("Successful", true, featuredProducts));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(), false, null));
+        }
+    }
+
     @GetMapping("/all")
     public ResponseEntity<ApiResponse> getAllProducts(
-            @RequestParam(defaultValue = "") String cursor,  // Default cursor is an empty string
+            @RequestParam(defaultValue = "") String cursor,
             @RequestParam(defaultValue = "10") int size,
             PagedResourcesAssembler<Product> pagedResourcesAssembler) {
         try {
@@ -77,6 +109,21 @@ public class ProductController {
         }
     }
 
+    @PostMapping("products/productIds")
+    public ResponseEntity<ApiResponse> getProductsByIds(@RequestBody List<String> productIds) {
+        try {
+            List<Product> products = productService.getProductsByIds(productIds);
+            if (!CollectionUtils.isNullOrEmpty(products)) {
+                return ResponseEntity.ok(new ApiResponse("success", true, products));
+            } else {
+                return ResponseEntity.status(NOT_FOUND)
+                        .body(new ApiResponse("No products found", false, null));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse("Server error: " + e.getMessage(), false, null));
+        }
+    }
 
 
     @PostMapping("/add")

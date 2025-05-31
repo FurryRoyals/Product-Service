@@ -1,5 +1,6 @@
 package com.thepetclub.ProductService.service.product;
 
+import com.mongodb.client.result.UpdateResult;
 import com.thepetclub.ProductService.model.Product;
 import com.thepetclub.ProductService.request.AddProductRequest;
 import com.thepetclub.ProductService.request.ProductUpdateRequest;
@@ -15,5 +16,7 @@ public interface ProductService {
     Product updateProductById(ProductUpdateRequest request, String id);
     List<Product> getAllProducts(String cursor, int size);
     List<Product> getFilteredProducts(String cursor, int size, String categoryName, String name);
-
+    UpdateResult setProductField();
+    List<Product> getAllFeaturedProducts();
+    List<Product> getProductsByIds(List<String> productIds);
 }

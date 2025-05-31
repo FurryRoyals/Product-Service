@@ -10,7 +10,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,18 +26,41 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public InventoryResponse isProductAvailable(List<InventoryRequest> availabilityRequests) {
-        List<String> insufficientProducts = new ArrayList<>();
+        Map<String, Integer> totalRequested = new HashMap<>();
         for (InventoryRequest request : availabilityRequests) {
-            Product product = productRepository.findById(request.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException(productNotFound + request.getProductId()));
-            if (product.getInventory() < request.getQuantity()) {
-                insufficientProducts.add(product.getId());
+            if (request.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Quantity must be > 0 for product: " + request.getProductId());
+            }
+            totalRequested.merge(request.getProductId(), request.getQuantity(), Integer::sum);
+        }
+
+        List<String> productIds = new ArrayList<>(totalRequested.keySet());
+        Map<String, Product> productMap = productRepository.findAllById(productIds)
+                .stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        List<String> insufficientProducts = new ArrayList<>();
+        Map<String, Double> productPrices = new HashMap<>();
+
+        for (String productId : productIds) {
+            Product product = productMap.get(productId);
+            if (product == null) {
+                throw new ResourceNotFoundException(productNotFound + productId);
+            }
+            if (product.getDiscountedPrice() == null) {
+                throw new IllegalStateException("Incomplete data for product: " + productId);
+            }
+            if (product.getInventory() < totalRequested.get(productId)) {
+                insufficientProducts.add(productId);
+            } else {
+                productPrices.put(productId, product.getDiscountedPrice());
             }
         }
+
         if (!insufficientProducts.isEmpty()) {
             return new InventoryResponse("Not enough inventory for some products", false, null, insufficientProducts);
         }
-        return new InventoryResponse("Products are available", true, null, null);
+
+        return new InventoryResponse("Products are available", true, productPrices, null);
     }
 
     @Override

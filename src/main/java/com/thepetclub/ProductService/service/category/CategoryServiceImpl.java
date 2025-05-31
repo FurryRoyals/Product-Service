@@ -8,7 +8,12 @@ import com.thepetclub.ProductService.repository.CategoryRepository;
 import com.thepetclub.ProductService.repository.ProductRepository;
 import com.thepetclub.ProductService.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +22,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
+    private final MongoTemplate mongoTemplate;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final ProductService productService;
@@ -26,13 +32,13 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public Category getCategoryById(String id) {
         return categoryRepository.findById(id)
-                .orElseThrow(()-> new ResourceNotFoundException(categoryNotFound + id));
+                .orElseThrow(() -> new ResourceNotFoundException(categoryNotFound + id));
     }
 
     @Override
     public Category getCategoryByName(String name) {
         return Optional.ofNullable(categoryRepository.findByName(name))
-                .orElseThrow(()-> new ResourceNotFoundException(categoryNotFound + name));
+                .orElseThrow(() -> new ResourceNotFoundException(categoryNotFound + name));
     }
 
     @Override
@@ -44,21 +50,24 @@ public class CategoryServiceImpl implements CategoryService {
     public Category addCategory(Category category) {
         return Optional.of(category).filter(c -> !categoryRepository.existsByName(c.getName()))
                 .map(categoryRepository::save)
-                .orElseThrow(()-> new AlreadyExistsException("category already exists!"));
+                .orElseThrow(() -> new AlreadyExistsException("category already exists!"));
     }
 
+    @Transactional
     @Override
     public Category updateCategoryById(Category category, String id) {
         return Optional.ofNullable(getCategoryById(id))
                 .map(oldCategory -> {
+
+                    String oldCategoryName = oldCategory.getName();
                     oldCategory.setName(category.getName());
-                    for (String productId : oldCategory.getProductIds()) {
-                        Product product = productService.getProductById(productId);
-                        product.setCategoryName(category.getName());
-                        productRepository.save(product);
-                    }
+
+                    Query query = new Query(Criteria.where("categoryName").is(oldCategoryName));
+                    Update update = new Update().set("categoryName", category.getName());
+                    mongoTemplate.updateMulti(query, update, Product.class);
+
                     return categoryRepository.save(oldCategory);
-                }).orElseThrow(()-> new ResourceNotFoundException(categoryNotFound + id));
+                }).orElseThrow(() -> new ResourceNotFoundException(categoryNotFound + id));
     }
 
 
