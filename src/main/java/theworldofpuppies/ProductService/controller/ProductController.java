@@ -1,7 +1,11 @@
 package theworldofpuppies.ProductService.controller;
 
-import com.amazonaws.util.CollectionUtils;
 import com.mongodb.client.result.UpdateResult;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import theworldofpuppies.ProductService.clients.AuthResponse;
 import theworldofpuppies.ProductService.clients.AuthService;
 import theworldofpuppies.ProductService.exception.ResourceNotFoundException;
 import theworldofpuppies.ProductService.exception.UnauthorizedException;
@@ -9,12 +13,7 @@ import theworldofpuppies.ProductService.model.Product;
 import theworldofpuppies.ProductService.request.AddProductRequest;
 import theworldofpuppies.ProductService.request.ProductUpdateRequest;
 import theworldofpuppies.ProductService.response.ApiResponse;
-import theworldofpuppies.ProductService.clients.AuthResponse;
 import theworldofpuppies.ProductService.service.product.ProductService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.web.PagedResourcesAssembler;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -104,11 +103,11 @@ public class ProductController {
         }
     }
 
-    @PostMapping("products/productIds")
-    public ResponseEntity<ApiResponse> getProductsByIds(@RequestBody List<String> productIds) {
+    @GetMapping("/id")
+    public ResponseEntity<ApiResponse> getProductsByIds(@RequestParam List<String> productIds) {
         try {
             List<Product> products = productService.getProductsByIds(productIds);
-            if (!CollectionUtils.isNullOrEmpty(products)) {
+            if (!products.isEmpty()) {
                 return ResponseEntity.ok(new ApiResponse("success", true, products));
             } else {
                 return ResponseEntity.status(NOT_FOUND)

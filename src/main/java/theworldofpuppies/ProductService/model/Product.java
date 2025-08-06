@@ -29,8 +29,19 @@ public class Product {
     private String firstImageId;
     private Boolean isFeatured;
     private List<String> imageIds = new ArrayList<>();
+    private Boolean isRecommended = false;
+    private Double rating = 0.0;
 
-    public Product(String name, Double price, int discount, Double discountedPrice, int inventory, String description, String categoryName, Boolean isFeatured) {
+    public Product(String name,
+                   Double price,
+                   int discount,
+                   Double discountedPrice,
+                   int inventory,
+                   String description,
+                   String categoryName,
+                   Boolean isFeatured,
+                   Boolean isRecommended,
+                   Double rating) {
         this.name = name;
         this.price = price;
         this.discount = discount;
@@ -39,5 +50,7 @@ public class Product {
         this.description = description;
         this.categoryName = categoryName;
         this.isFeatured = isFeatured;
+        this.isRecommended = isRecommended;
+        this.rating = rating;
     }
 }

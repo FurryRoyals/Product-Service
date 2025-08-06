@@ -13,5 +13,7 @@ public class ProductUpdateRequest {
     private int inventory;
     private String description;
     private String categoryName;
+    private Boolean isRecommended;
+    private Double rating;
 }
 

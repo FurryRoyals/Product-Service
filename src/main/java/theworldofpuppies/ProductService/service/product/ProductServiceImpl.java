@@ -39,7 +39,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public UpdateResult setProductField() {
         Query query = new Query();
-        Update update = new Update().set("discountedPrice", 0.0);
+        Update update = new Update().set("rating", 0.0);
         return mongoTemplate.updateMulti(query, update, Product.class);
     }
 
@@ -94,7 +94,9 @@ public class ProductServiceImpl implements ProductService {
                 request.getInventory(),
                 request.getDescription(),
                 category_name,
-                request.getIsFeatured()
+                request.getIsFeatured(),
+                request.getIsRecommended(),
+                request.getRating()
         );
     }
 
@@ -106,7 +108,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> getProductsByIds(List<String> productIds) {
-        return productRepository.findAllById(productIds);
+        return productRepository.findAllByIdIn(productIds);
     }
 
 
@@ -148,6 +150,8 @@ public class ProductServiceImpl implements ProductService {
         existingProduct.setInventory(request.getInventory());
         existingProduct.setDescription(request.getDescription());
         existingProduct.setCategoryName(request.getCategoryName());
+        existingProduct.setIsRecommended(request.getIsRecommended());
+        existingProduct.setRating(request.getRating());
         productRepository.save(existingProduct);
         return existingProduct;
     }
