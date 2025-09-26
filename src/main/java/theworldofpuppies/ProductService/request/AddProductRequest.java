@@ -17,5 +17,4 @@ public class AddProductRequest {
     private String categoryName;
     private Boolean isFeatured;
     private Boolean isRecommended;
-    private Double rating;
 }

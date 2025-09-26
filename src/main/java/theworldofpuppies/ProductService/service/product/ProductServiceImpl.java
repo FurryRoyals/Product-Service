@@ -1,23 +1,24 @@
 package theworldofpuppies.ProductService.service.product;
 
 import com.mongodb.client.result.UpdateResult;
-import theworldofpuppies.ProductService.exception.ResourceNotFoundException;
-import theworldofpuppies.ProductService.model.Category;
-import theworldofpuppies.ProductService.model.Product;
-import theworldofpuppies.ProductService.repository.CategoryRepository;
-import theworldofpuppies.ProductService.repository.ImageRepository;
-import theworldofpuppies.ProductService.repository.ProductRepository;
-import theworldofpuppies.ProductService.request.AddProductRequest;
-import theworldofpuppies.ProductService.request.ProductUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
-import org.springframework.data.domain.*;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import theworldofpuppies.ProductService.dto.ProductDto;
+import theworldofpuppies.ProductService.exception.ResourceNotFoundException;
+import theworldofpuppies.ProductService.model.Category;
+import theworldofpuppies.ProductService.model.Product;
+import theworldofpuppies.ProductService.repository.CategoryRepository;
+import theworldofpuppies.ProductService.repository.ProductRepository;
+import theworldofpuppies.ProductService.request.AddProductRequest;
+import theworldofpuppies.ProductService.request.ProductUpdateRequest;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,8 +31,8 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final ImageRepository imageRepository;
     private final MongoTemplate mongoTemplate;
+    private final ModelMapper modelMapper;
 
     private final String productNotFound = "No product found with: ";
 
@@ -44,7 +45,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product addProduct(AddProductRequest request) {
+    public ProductDto addProduct(AddProductRequest request) {
         Category category = Optional.ofNullable(categoryRepository.findByName(request.getCategoryName()))
                 .orElseGet(() -> {
                     Category newCategory = new Category();
@@ -59,7 +60,7 @@ public class ProductServiceImpl implements ProductService {
         productIds.add(savedProduct.getId());
         category.setProductIds(productIds);
         categoryRepository.save(category);
-        return savedProduct;
+        return convertToDto(savedProduct);
     }
 
     @Transactional
@@ -72,13 +73,13 @@ public class ProductServiceImpl implements ProductService {
                     return categoryRepository.save(newCategory);
                 });
         List<Product> products = new ArrayList<>();
-        requests.forEach( it -> {
+        requests.forEach(it -> {
             Product product = createProduct(it, category);
             products.add(product);
         });
         List<Product> savedProducts = productRepository.saveAll(products);
         List<String> productIds = existingCategory.getProductIds();
-        savedProducts.forEach( it -> {
+        savedProducts.forEach(it -> {
             productIds.add(it.getId());
         });
         existingCategory.setProductIds(productIds);
@@ -95,22 +96,22 @@ public class ProductServiceImpl implements ProductService {
                 request.getDescription(),
                 category_name,
                 request.getIsFeatured(),
-                request.getIsRecommended(),
-                request.getRating()
+                request.getIsRecommended()
         );
     }
 
     @Override
-    public Product getProductById(String id) {
-        return productRepository.findById(id)
+    public ProductDto getProductById(String id) {
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(productNotFound + id));
+        return convertToDto(product);
     }
 
     @Override
-    public List<Product> getProductsByIds(List<String> productIds) {
-        return productRepository.findAllByIdIn(productIds);
+    public List<ProductDto> getProductsByIds(List<String> productIds) {
+        List<Product> products = productRepository.findAllByIdIn(productIds);
+        return products.stream().map(this::convertToDto).toList();
     }
-
 
 
     @Override
@@ -121,25 +122,21 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(() -> new ResourceNotFoundException("No category found with: " + categoryName));
             category.getProductIds().removeIf(productId -> productId.equals(id));
             productRepository.deleteById(id);
-            for (String imageId : product.getImageIds()) {
-                imageRepository.findById(imageId).ifPresentOrElse(image -> imageRepository.deleteById(imageId),
-                        () -> {
-                            throw new RuntimeException("No image found with " + imageId);
-                        }
-                );
-            }
         }, () -> {
             throw new ResourceNotFoundException(productNotFound + id);
         });
     }
 
     @Override
-    public Product updateProductById(ProductUpdateRequest request, String productId) {
-        return productRepository.findById(productId)
+    public ProductDto updateProductById(ProductUpdateRequest request, String productId) {
+        Product updatedProduct = productRepository.findById(productId)
                 .map(existingProduct -> updateExistingProduct(existingProduct, request))
                 .map(productRepository::save)
                 .orElseThrow(() -> new ResourceNotFoundException(productNotFound + productId));
+
+        return convertToDto(updatedProduct);
     }
+
 
     private Product updateExistingProduct(Product existingProduct, ProductUpdateRequest request) {
         if (categoryRepository.existsByName(request.getCategoryName())) {
@@ -151,13 +148,12 @@ public class ProductServiceImpl implements ProductService {
         existingProduct.setDescription(request.getDescription());
         existingProduct.setCategoryName(request.getCategoryName());
         existingProduct.setIsRecommended(request.getIsRecommended());
-        existingProduct.setRating(request.getRating());
         productRepository.save(existingProduct);
         return existingProduct;
     }
 
     @Override
-    public List<Product> getAllProducts(String cursor, int size) {
+    public List<ProductDto> getAllProducts(String cursor, int size) {
         Query query = new Query();
 
         if (cursor != null && !cursor.isEmpty()) {
@@ -165,37 +161,59 @@ public class ProductServiceImpl implements ProductService {
         }
 
         query.limit(size);
-        return mongoTemplate.find(query, Product.class);
+
+        // Step 1: Fetch products
+        List<Product> products = mongoTemplate.find(query, Product.class);
+
+        return products.stream().map(this::convertToDto).toList();
     }
 
+
     @Override
-    public List<Product> getFilteredProducts(String cursor, int size, String categoryName, String name) {
+    public List<ProductDto> getFilteredProducts(String cursor, int size, String categoryName, String name) {
         Query query = new Query();
 
         if (cursor != null && !cursor.isEmpty()) {
             query.addCriteria(Criteria.where("_id").gt(new ObjectId(cursor)));
         }
-        if (categoryName != null) {
+        if (categoryName != null && !categoryName.isEmpty()) {
             query.addCriteria(Criteria.where("categoryName").is(categoryName));
         }
-        if (name != null) {
-            query.addCriteria(Criteria.where("name").regex(".*" + name + ".*", "i"));
+        if (name != null && !name.isEmpty()) {
+            query.addCriteria(Criteria.where("name").regex(".*" + name + ".*", "i")); // case-insensitive
         }
 
         query.limit(size);
         query.with(Sort.by(Sort.Direction.ASC, "_id"));
 
-        return mongoTemplate.find(query, Product.class);
+        // Step 1: Fetch products
+        List<Product> products = mongoTemplate.find(query, Product.class);
+
+        return products.stream().map(this::convertToDto).toList();
     }
 
+
     @Override
-    public List<Product> getAllFeaturedProducts() {
+    public List<ProductDto> getAllFeaturedProducts() {
         try {
-            return productRepository.findByIsFeatured(true)
+            // Step 1: Fetch featured products
+            List<Product> products = productRepository.findByIsFeatured(true)
                     .orElse(Collections.emptyList());
+
+            if (products.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            return products.stream().map(this::convertToDto).toList();
+
         } catch (Exception e) {
             throw new RuntimeException("Could not retrieve featured products", e);
         }
+    }
+
+
+    ProductDto convertToDto(Product product) {
+        return modelMapper.map(product, ProductDto.class);
     }
 
 }
