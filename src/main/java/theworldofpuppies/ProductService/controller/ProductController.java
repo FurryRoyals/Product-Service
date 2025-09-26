@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import theworldofpuppies.ProductService.clients.AuthResponse;
 import theworldofpuppies.ProductService.clients.AuthService;
+import theworldofpuppies.ProductService.dto.ProductDto;
 import theworldofpuppies.ProductService.exception.ResourceNotFoundException;
 import theworldofpuppies.ProductService.exception.UnauthorizedException;
 import theworldofpuppies.ProductService.model.Product;
@@ -45,7 +46,7 @@ public class ProductController {
     @GetMapping("featured")
     public ResponseEntity<ApiResponse> getAllFeaturedProducts() {
         try {
-            List<Product> featuredProducts = productService.getAllFeaturedProducts();
+            List<ProductDto> featuredProducts = productService.getAllFeaturedProducts();
             if (featuredProducts.isEmpty()) {
                 return ResponseEntity.status(NOT_FOUND).body(new ApiResponse("Empty", false, null));
             }
@@ -63,7 +64,7 @@ public class ProductController {
             @RequestParam(defaultValue = "10") int size,
             PagedResourcesAssembler<Product> pagedResourcesAssembler) {
         try {
-            List<Product> products = productService.getAllProducts(cursor, size);
+            List<ProductDto> products = productService.getAllProducts(cursor, size);
             String nextCursor = products.isEmpty() ? null : products.getLast().getId();
             Map<String, Object> response = new HashMap<>();
             response.put("products", products);
@@ -81,7 +82,7 @@ public class ProductController {
             @RequestParam(required = false) String categoryName,
             @RequestParam(required = false) String name) {
         try {
-            List<Product> products = productService.getFilteredProducts(cursor, size, categoryName, name);
+            List<ProductDto> products = productService.getFilteredProducts(cursor, size, categoryName, name);
             String nextCursor = products.isEmpty() ? null : products.getLast().getId(); // Last ID as next cursor
             Map<String, Object> response = new HashMap<>();
             response.put("products", products);
@@ -96,7 +97,7 @@ public class ProductController {
     @GetMapping("/{productId}")
     public ResponseEntity<ApiResponse> getProductById(@PathVariable String productId) {
         try {
-            Product product = productService.getProductById(productId);
+            ProductDto product = productService.getProductById(productId);
             return ResponseEntity.ok(new ApiResponse("Success", true, product));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), false, null));
@@ -106,7 +107,7 @@ public class ProductController {
     @GetMapping("/id")
     public ResponseEntity<ApiResponse> getProductsByIds(@RequestParam List<String> productIds) {
         try {
-            List<Product> products = productService.getProductsByIds(productIds);
+            List<ProductDto> products = productService.getProductsByIds(productIds);
             if (!products.isEmpty()) {
                 return ResponseEntity.ok(new ApiResponse("success", true, products));
             } else {
@@ -154,7 +155,7 @@ public class ProductController {
             AuthResponse authResponse = authService.validateAdmin(token);
 
             if (authResponse.isVerified()) {
-                Product product = productService.updateProductById(request, productId);
+                ProductDto product = productService.updateProductById(request, productId);
                 return ResponseEntity.ok(new ApiResponse("Update product success!", true, product));
             } else {
                 return ResponseEntity.status(UNAUTHORIZED).body(new ApiResponse(authResponse.getMessage(), false, UNAUTHORIZED));

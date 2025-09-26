@@ -1,6 +1,8 @@
 package theworldofpuppies.ProductService.service.image;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Date;
 
 @Service
 public class StorageService {
@@ -38,6 +41,14 @@ public class StorageService {
         }
     }
 
+    public void deleteFileFromS3(String s3Key) {
+        try {
+            amazonS3.deleteObject(bucketName, s3Key);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete file from S3: " + s3Key, e);
+        }
+    }
+
     public Resource downloadImageFromS3(String downloadUrl) {
         try {
             String s3Key = downloadUrl.replaceFirst("https://[^/]+/", "");
@@ -47,6 +58,14 @@ public class StorageService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to download image from S3", e);
         }
+    }
+
+    public String generatePresignedUrl(String s3Key) {
+        GeneratePresignedUrlRequest generatePresignedUrlRequest =
+                new GeneratePresignedUrlRequest(bucketName, s3Key)
+                        .withMethod(HttpMethod.GET);
+
+        return amazonS3.generatePresignedUrl(generatePresignedUrlRequest).toString();
     }
 
     public String extractS3Key(String downloadUrl) {

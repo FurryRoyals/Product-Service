@@ -1,6 +1,6 @@
 package theworldofpuppies.ProductService.model;
 
-
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,8 +12,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @Document(collection = "products")
 public class Product {
@@ -26,11 +25,10 @@ public class Product {
     private int inventory;
     private String description;
     private String categoryName;
-    private String firstImageId;
+    private Image firstImage;
     private Boolean isFeatured;
-    private List<String> imageIds = new ArrayList<>();
+    private List<Image> images = new ArrayList<>();
     private Boolean isRecommended = false;
-    private Double rating = 0.0;
 
     public Product(String name,
                    Double price,
@@ -40,8 +38,7 @@ public class Product {
                    String description,
                    String categoryName,
                    Boolean isFeatured,
-                   Boolean isRecommended,
-                   Double rating) {
+                   Boolean isRecommended) {
         this.name = name;
         this.price = price;
         this.discount = discount;
@@ -51,6 +48,5 @@ public class Product {
         this.categoryName = categoryName;
         this.isFeatured = isFeatured;
         this.isRecommended = isRecommended;
-        this.rating = rating;
     }
 }

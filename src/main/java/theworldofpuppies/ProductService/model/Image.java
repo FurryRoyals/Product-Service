@@ -12,14 +12,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "images")
 public class Image {
-    @Id
-    private String id;
-    private String downloadUrl;
-    private String fetchUrl;
     private String fileName;
     private String fileType;
-    private String productId;
-
+    private String s3Key;
+    private String fetchUrl;
 }
