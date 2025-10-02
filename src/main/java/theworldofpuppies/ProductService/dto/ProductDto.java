@@ -24,4 +24,7 @@ public class ProductDto {
     private Image firstImage;
     private Boolean isFeatured;
     private Boolean isRecommended = false;
+    private Boolean isRated;
+    private Double averageStars;
+    private Integer totalReviews;
 }
