@@ -29,6 +29,9 @@ public class Product {
     private Boolean isFeatured;
     private List<Image> images = new ArrayList<>();
     private Boolean isRecommended = false;
+    private Boolean isRated = false;
+    private Double averageStars = 0.0;
+    private Integer totalReviews = 0;
 
     public Product(String name,
                    Double price,

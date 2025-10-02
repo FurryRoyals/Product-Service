@@ -10,6 +10,31 @@ spring:
       username: ${mongo_username}
       password: ${mongo_password}
 
+  kafka:
+    bootstrap-servers: pkc-921jm.us-east-2.aws.confluent.cloud:9092
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: >
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username='${CONFLUENT_USERNAME}'
+        password='${CONFLUENT_PASSWORD}';
+      session.timeout.ms: 45000
+
+    consumer:
+      group-id: product-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: theworldofpuppies.ProductService.model.ReviewEvent
+        spring.json.trusted.packages: "*"
+
+    listener:
+      ack-mode: RECORD
+
 access:
   key:
     id: ${access_key}
@@ -21,7 +46,7 @@ s3:
     name: skillifymestorage
 
 server:
-  PORT: 8081
+  port: 8081
 
 eureka:
   client:
